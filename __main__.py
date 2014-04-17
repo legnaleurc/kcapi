@@ -153,7 +153,6 @@ def main(args=None):
 
     client = Client('__API_TOKEN__')
     client.test()
-    # api = API('__API_TOKEN__')
 
     # app = tornado.web.Application([
     #     (r'/api/ship', APIShipHandler, {'api': api}),
