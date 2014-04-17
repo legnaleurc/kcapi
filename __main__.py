@@ -1,10 +1,17 @@
 #! /usr/bin/env python
 
 
+from api import API
+import db
+
 import tornado.ioloop
 import tornado.web
 
 import sys
+
+
+# create session class
+Session = db.initialize()
 
 
 class APIHandler(tornado.web.RequestHandler):
