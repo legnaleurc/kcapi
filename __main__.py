@@ -22,6 +22,7 @@
 # THE SOFTWARE.
 
 
+import time
 import sys
 
 import tornado.ioloop
@@ -103,6 +104,17 @@ class Client(object):
 
             session.add(row)
         session.commit()
+
+    def start_mission(self, api_deck_id, api_mission_id):
+        data = self._api.mission_start(api_deck_id=api_deck_id, api_mission_id=api_mission_id)
+        if data['api_result'] != 1:
+            return
+
+        complate_time = data['api_data']['api_complatetime']
+        complate_time = complate_time / 1000
+        current_time = time.time()
+        delta = complate_time - current_time
+        return delta
 
     def test(self):
         session = Session()
