@@ -25,6 +25,8 @@ class ShipType(_Base):
     api_aftershipid = sql.Column(sql.String)
     # 以下略。戦闘や建造はやらない
 
+    ships = relationship('Ship', backref='ship_type')
+
 
 class Deck(_Base):
 
@@ -47,8 +49,10 @@ class Ship(_Base):
     api_maxhp = sql.Column(sql.Integer)
     api_ndock_time = sql.Column(sql.Integer)
 
+    deck_id = sql.Column(sql.Integer, sql.ForeignKey('deck.api_id'))
 
-def initialize():
-    engine = sql.create_engine('sqlite:///:memory:', echo=True)
+
+def initialize(echo=False):
+    engine = sql.create_engine('sqlite:///:memory:', echo=echo)
     _Base.metadata.create_all(engine)
     return sessionmaker(bind=engine)

@@ -14,6 +14,83 @@ import sys
 Session = db.initialize()
 
 
+class Client(object):
+
+    def __init__(self, api_token):
+        self._api = API(api_token)
+
+        # get all ship model
+        self._ship()
+        # get deck and ships
+        self._ship2()
+
+    def _ship(self):
+        ships = self._api.ship()
+        if ships['api_result'] != 1:
+            return
+
+        ships = ships['api_data']
+        session = Session()
+        for ship in ships:
+            row = db.ShipType(
+                api_id=ship['api_id'],
+                api_sortno=ship['api_sortno'],
+                api_name=ship['api_name'],
+                api_yomi=ship['api_yomi'],
+                api_stype=ship['api_stype'],
+                api_ctype=ship['api_ctype'],
+                api_cnum=ship['api_cnum'],
+                api_enqflg=ship['api_enqflg'],
+                api_afterlv=ship['api_afterlv'],
+                api_aftershipid=ship['api_aftershipid'])
+            session.add(row)
+        session.commit()
+
+    def _ship2(self):
+        data = self._api.ship2(api_sort_key=1)
+        if data['api_result'] != 1:
+            return
+
+        session = Session()
+
+        ship_data = data['api_data']
+        for ship in ship_data:
+            row = db.Ship(
+                api_id=ship['api_id'],
+                api_sortno=ship['api_sortno'],
+                api_ship_id=ship['api_ship_id'],
+                api_lv=ship['api_lv'],
+                api_nowhp=ship['api_nowhp'],
+                api_maxhp=ship['api_maxhp'],
+                api_ndock_time=ship['api_ndock_time'])
+            session.add(row)
+        session.commit()
+
+        deck_data = data['api_data_deck']
+        for deck in deck_data:
+            row = db.Deck(
+                api_id=deck['api_id'],
+                api_name=deck['api_name'])
+
+            ships = deck['api_ship']
+            for ship in ships:
+                if ship == -1:
+                    continue
+                s = session.query(db.Ship).filter(db.Ship.api_id==ship).first()
+                row.api_ship.append(s)
+
+            session.add(row)
+        session.commit()
+
+    def test(self):
+        session = Session()
+        for deck in session.query(db.Deck).all():
+            name = deck.api_name
+            print(name)
+            for ship in deck.api_ship:
+                print(ship.ship_type.api_name)
+
+
 class APIHandler(tornado.web.RequestHandler):
 
     def initialize(self, api, *args, **kwargs):
@@ -74,17 +151,19 @@ def main(args=None):
     if args is None:
         args = sys.argv
 
-    api = API('__API_TOKEN__')
+    client = Client('__API_TOKEN__')
+    client.test()
+    # api = API('__API_TOKEN__')
 
-    app = tornado.web.Application([
-        (r'/api/ship', APIShipHandler, {'api': api}),
-        (r'/api/ship2', APIShip2Handler, {'api': api}),
-        (r'/api/deck', APIDeckHandler, {'api': api}),
-        (r'/charge', ChargeHandler, {'api': api}),
-    ])
+    # app = tornado.web.Application([
+    #     (r'/api/ship', APIShipHandler, {'api': api}),
+    #     (r'/api/ship2', APIShip2Handler, {'api': api}),
+    #     (r'/api/deck', APIDeckHandler, {'api': api}),
+    #     (r'/charge', ChargeHandler, {'api': api}),
+    # ])
 
-    app.listen(8000)
-    tornado.ioloop.IOLoop.instance().start()
+    # app.listen(8000)
+    # tornado.ioloop.IOLoop.instance().start()
 
     return 0
 

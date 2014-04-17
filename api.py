@@ -36,7 +36,7 @@ class API(object):
         return response
 
     def ship(self):
-        return self._do_request('/kcsapi/api_get_member/ship')
+        return self._do_request('/kcsapi/api_get_master/ship')
 
     def ship2(self, api_sort_key):
         return self._do_request('/kcsapi/api_get_member/ship2', {
