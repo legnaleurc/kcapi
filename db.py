@@ -1,3 +1,5 @@
+#-*- coding: utf-8 -*-
+
 import sqlalchemy as sql
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
