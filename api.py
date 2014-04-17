@@ -52,3 +52,19 @@ class API(object):
             'api_id_items': ','.join(map(str, api_id_items)),
             'api_kind': api_kind,
         })
+
+    def mission_start(self, api_deck_id, api_mission_id):
+        return self._do_request('/kcsapi/api_req_mission/start', {
+            'api_deck_id': api_deck_id,
+            'api_mission_id': api_mission_id,
+        })
+
+    def nyukyo_start(self, api_ship_id, api_ndock_id, api_highspeed):
+        return self._do_request('/kcsapi/api_req_mission/start', {
+            'api_ship_id': api_ship_id,
+            'api_ndock_id': api_ndock_id,
+            'api_highspeed': api_highspeed,
+        })
+
+    def ndock(self):
+        return self._do_request('/kcsapi/api_get_member/ndock')
