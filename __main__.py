@@ -20,18 +20,18 @@ class Client(object):
         self._api = API(api_token)
 
         # get all ship model
-        self._ship()
+        self._master_ship()
         # get deck and ships
         self._ship2()
 
-    def _ship(self):
-        ships = self._api.ship()
-        if ships['api_result'] != 1:
+    def _master_ship(self):
+        data = self._api.master_ship()
+        if data['api_result'] != 1:
             return
 
-        ships = ships['api_data']
+        data = data['api_data']
         session = Session()
-        for ship in ships:
+        for ship in data:
             row = db.ShipType(
                 api_id=ship['api_id'],
                 api_sortno=ship['api_sortno'],

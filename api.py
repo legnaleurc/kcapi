@@ -35,7 +35,7 @@ class API(object):
         response = json.loads(json_text)
         return response
 
-    def ship(self):
+    def master_ship(self):
         return self._do_request('/kcsapi/api_get_master/ship')
 
     def ship2(self, api_sort_key):
