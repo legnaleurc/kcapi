@@ -22,6 +22,7 @@
 
 
 import json
+import re
 
 import requests
 
@@ -63,8 +64,20 @@ class API(object):
         if response.status_code != 200:
             return None
 
-        json_text = response.text[7:]
-        response = json.loads(json_text)
+        m = re.match(r'^.*svdata=(.+)$', response.text)
+        if not m:
+            # TODO error log
+            print(response.text)
+            return None
+        json_text = m.group(1)
+        try:
+            response = json.loads(json_text)
+        except ValueError as e:
+            # TODO error log
+            print(e)
+            print(response.text)
+            print(json_text)
+            response = None
         return response
 
     def master_ship(self):
@@ -85,7 +98,7 @@ class API(object):
             'api_kind': api_kind,
         })
 
-    def mission_start(self, api_deck_id, api_mission_id):
+    def mission(self, api_deck_id, api_mission_id):
         return self._do_request('/kcsapi/api_req_mission/start', {
             'api_deck_id': api_deck_id,
             'api_mission_id': api_mission_id,

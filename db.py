@@ -44,6 +44,8 @@ class ShipType(_Base):
     api_enqflg = sql.Column(sql.String)
     api_afterlv = sql.Column(sql.Integer)
     api_aftershipid = sql.Column(sql.String)
+    api_fuel_max = sql.Column(sql.Integer)
+    api_bull_max = sql.Column(sql.Integer)
     # 以下略。戦闘や建造はやらない
 
     ships = relationship('Ship', backref='ship_type')
@@ -56,6 +58,9 @@ class Deck(_Base):
     api_id = sql.Column(sql.Integer, primary_key=True)
     api_name = sql.Column(sql.String)
     api_ship = relationship('Ship', backref='deck')
+
+    mission_id = sql.Column(sql.Integer)
+    mission_time = sql.Column(sql.Integer)
 
 
 class Ship(_Base):
@@ -72,6 +77,8 @@ class Ship(_Base):
     api_nowhp = sql.Column(sql.Integer)
     api_maxhp = sql.Column(sql.Integer)
     api_ndock_time = sql.Column(sql.Integer)
+    api_fuel = sql.Column(sql.Integer)
+    api_bull = sql.Column(sql.Integer)
 
     deck_id = sql.Column(sql.Integer, sql.ForeignKey('deck.api_id'))
 

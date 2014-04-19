@@ -33,7 +33,7 @@ import db
 
 
 # create session class
-Session = db.initialize()
+Session = db.initialize(echo=True)
 
 
 class Client(object):
@@ -64,7 +64,9 @@ class Client(object):
                 api_cnum=ship['api_cnum'],
                 api_enqflg=ship['api_enqflg'],
                 api_afterlv=ship['api_afterlv'],
-                api_aftershipid=ship['api_aftershipid'])
+                api_aftershipid=ship['api_aftershipid'],
+                api_fuel_max=ship['api_fuel_max'],
+                api_bull_max=ship['api_bull_max'])
             session.add(row)
         session.commit()
 
@@ -84,7 +86,9 @@ class Client(object):
                 api_lv=ship['api_lv'],
                 api_nowhp=ship['api_nowhp'],
                 api_maxhp=ship['api_maxhp'],
-                api_ndock_time=ship['api_ndock_time'])
+                api_ndock_time=ship['api_ndock_time'],
+                api_fuel=ship['api_fuel'],
+                api_bull=ship['api_bull'])
             session.add(row)
         session.commit()
 
@@ -92,37 +96,61 @@ class Client(object):
         for deck in deck_data:
             row = db.Deck(
                 api_id=deck['api_id'],
-                api_name=deck['api_name'])
+                api_name=deck['api_name'],
+                mission_id=deck['api_mission'][1],
+                mission_time=deck['api_mission'][2])
 
             ships = deck['api_ship']
             for ship in ships:
                 if ship == -1:
                     continue
                 s = (session.query(db.Ship)
-                     .filter(db.Ship.api_id == ship).first())
+                     .filter(db.Ship.api_id == ship)
+                     .first())
                 row.api_ship.append(s)
 
             session.add(row)
         session.commit()
 
+
+    def update(self):
+        session = Session()
+        session.query(db.Deck).delete()
+        session.query(db.Ship).delete()
+        session.commit()
+        self._ship2()
+
+
     def start_mission(self, api_deck_id, api_mission_id):
-        data = self._api.mission_start(api_deck_id=api_deck_id, api_mission_id=api_mission_id)
+        # update data
+        self.update()
+
+        # hokyu
+        session = Session()
+        ships_id = [x for x, in session.query(db.Ship.api_id).join(db.ShipType).filter((db.Ship.api_fuel < db.ShipType.api_fuel_max) | (db.Ship.api_bull < db.ShipType.api_bull_max))]
+        data = self._api.charge(api_id_items=ships_id, api_kind=3)
         if data['api_result'] != 1:
+            # TODO print error
+            print(data['api_result_msg'])
             return
 
-        complate_time = data['api_data']['api_complatetime']
-        complate_time = complate_time / 1000
-        current_time = time.time()
-        delta = complate_time - current_time
-        return delta
+        # start mission
+        data = self._api.mission(api_deck_id=api_deck_id, api_mission_id=api_mission_id)
+        if data['api_result'] != 1:
+            # TODO print error
+            print(data['api_result_msg'])
+            return
+
+        # update cache
+        deck = (session.query(db.Deck)
+                .filter(db.Deck.api_id == api_deck_id)
+                .first())
+        deck.mission_id = api_mission_id
+        deck.mission_time = data['api_data']['api_complatetime']
+        session.commit()
 
     def test(self):
-        session = Session()
-        for deck in session.query(db.Deck).all():
-            name = deck.api_name
-            print(name)
-            for ship in deck.api_ship:
-                print(ship.ship_type.api_name)
+        self.start_mission(api_deck_id=2, api_mission_id=3)
 
 
 class APIHandler(tornado.web.RequestHandler):
@@ -181,12 +209,41 @@ class ChargeHandler(APIHandler):
         self.write(response)
 
 
+class Mission(object):
+
+    def __init__(self, client):
+        self._client = client
+        self._jobs = set()
+
+    def start(self, api_deck_id, api_mission_id):
+        self._jobs.add(api_deck_id)
+
+        delta = self._client.start_mission(api_deck_id, api_mission_id)
+        self._timer.setTimeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
+
+    def stop(self, api_deck_id):
+        self._timer.clearTimeout()
+        self.remove(api_deck_id)
+
+    def _on_done(self, api_deck_id, api_mission_id):
+        if api_deck_id not in self._jobs:
+            return
+
+        delta = self._client.start_mission(api_deck_id, api_mission_id)
+        self._timer.setTimeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
+
+
 def main(args=None):
     if args is None:
         args = sys.argv
 
-    client = Client('__API_TOKEN__')
+    api_token = args[1]
+
+    client = Client(api_token)
     client.test()
+
+    # mission = Mission(client=client)
+    # mission.start(api_deck_id=2, api_mission_id=3)
 
     # app = tornado.web.Application([
     #     (r'/api/ship', APIShipHandler, {'api': api}),
