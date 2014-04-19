@@ -30,10 +30,11 @@ import tornado.web
 
 from api import API
 import db
+import task
 
 
 # create session class
-Session = db.initialize(echo=True)
+Session = db.initialize()
 
 
 class Client(object):
@@ -211,26 +212,57 @@ class ChargeHandler(APIHandler):
 
 class Mission(object):
 
-    def __init__(self, client):
+    def __init__(self, client, event_loop):
         self._client = client
-        self._jobs = set()
+        self._event_loop = event_loop
+        self._decks = {}
 
     def start(self, api_deck_id, api_mission_id):
-        self._jobs.add(api_deck_id)
-
-        delta = self._client.start_mission(api_deck_id, api_mission_id)
-        self._timer.setTimeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
-
-    def stop(self, api_deck_id):
-        self._timer.clearTimeout()
-        self.remove(api_deck_id)
-
-    def _on_done(self, api_deck_id, api_mission_id):
-        if api_deck_id not in self._jobs:
+        if api_deck_id in self._decks:
             return
 
-        delta = self._client.start_mission(api_deck_id, api_mission_id)
-        self._timer.setTimeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
+        session = Session()
+        deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
+
+        if deck.mission_id <= 0:
+            # not in a mission, start first time
+            self._client.start_mission(api_deck_id, api_mission_id)
+            # update cache value
+            deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
+
+        # calculate time interval
+        complete_time = deck.mission_time / 1000
+        current_time = time.time()
+        delta = complete_time - current_time
+
+        # queue next action
+        token = self._event_loop.set_timeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
+        self._decks[api_deck_id] = token
+
+    def stop(self, api_deck_id):
+        if api_deck_id not in self._decks:
+            return
+
+        token = self._decks[api_deck_id]
+        del self._decks[api_deck_id]
+        self._event_loop.clear_timeout(token)
+
+    def _on_done(self, api_deck_id, api_mission_id):
+        if api_deck_id not in self._decks:
+            return
+
+        # start next mission
+        self._client.start_mission(api_deck_id, api_mission_id)
+        deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
+
+        # calculate time interval
+        complete_time = deck.mission_time / 1000
+        current_time = time.time()
+        delta = complete_time - current_time
+
+        # queue next action
+        token = self._timer.setTimeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
+        self._decks[api_deck_id] = token
 
 
 def main(args=None):
@@ -240,10 +272,12 @@ def main(args=None):
     api_token = args[1]
 
     client = Client(api_token)
-    client.test()
+    event_loop = task.EventLoop()
 
-    # mission = Mission(client=client)
-    # mission.start(api_deck_id=2, api_mission_id=3)
+    mission = Mission(client=client, event_loop=event_loop)
+    mission.start(api_deck_id=2, api_mission_id=3)
+
+    event_loop.start()
 
     # app = tornado.web.Application([
     #     (r'/api/ship', APIShipHandler, {'api': api}),
