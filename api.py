@@ -92,7 +92,7 @@ class API(object):
         })
 
     def nyukyo_start(self, api_ship_id, api_ndock_id, api_highspeed):
-        return self._do_request('/kcsapi/api_req_mission/start', {
+        return self._do_request('/kcsapi/api_req_nyukyo/start', {
             'api_ship_id': api_ship_id,
             'api_ndock_id': api_ndock_id,
             'api_highspeed': api_highspeed,
