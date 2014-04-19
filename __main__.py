@@ -241,7 +241,7 @@ class Mission(object):
         current_time = time.time()
         delta = complete_time - current_time
 
-        self._log.debug('now: {0}, until: {1}, delta: {2}', current_time, complete_time, delta)
+        self._log.debug('now: {0}, until: {1}, delta: {2}'.format(current_time, complete_time, delta))
 
         # queue next action
         token = self._event_loop.set_timeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))

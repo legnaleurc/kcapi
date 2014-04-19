@@ -67,7 +67,7 @@ class EventLoop(object):
 class _Worker(threading.Thread):
 
     def __init__(self):
-        super().__init__(self)
+        super().__init__()
 
         self._should_stop = False
 
