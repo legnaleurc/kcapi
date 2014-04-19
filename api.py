@@ -88,14 +88,26 @@ class API(object):
     def master_ship(self):
         return self._do_request('/kcsapi/api_get_master/ship')
 
+    def material(self):
+        return self._do_request('/kcsapi/api_get_member/material')
+
     def ship2(self, api_sort_key):
         return self._do_request('/kcsapi/api_get_member/ship2', {
             'api_sort_order': 2,
             'api_sort_key': api_sort_key,
         })
 
+    def ship3(self, api_sort_key):
+        return self._do_request('/kcsapi/api_get_member/ship3', {
+            'api_sort_order': 2,
+            'api_sort_key': api_sort_key,
+        })
+
     def deck(self):
         return self._do_request('/kcsapi/api_get_member/deck')
+
+    def deck_port(self):
+        return self._do_request('/kcsapi/api_get_member/deck_port')
 
     def charge(self, api_id_items, api_kind):
         return self._do_request('/kcsapi/api_req_hokyu/charge', {
@@ -107,6 +119,11 @@ class API(object):
         return self._do_request('/kcsapi/api_req_mission/start', {
             'api_deck_id': api_deck_id,
             'api_mission_id': api_mission_id,
+        })
+
+    def result(self, api_deck_id):
+        return self._do_request('/kcsapi/api_req_mission/result', {
+            'api_deck_id': api_deck_id,
         })
 
     def nyukyo_start(self, api_ship_id, api_ndock_id, api_highspeed):

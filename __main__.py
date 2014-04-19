@@ -47,11 +47,12 @@ class Client(object):
         # get all ship model
         self._master_ship()
         # get deck and ships
-        self._ship2()
+        self._member_ship()
 
     def _master_ship(self):
         data = self._api.master_ship()
         if data['api_result'] != 1:
+            self._log.error(data['api_result_msg'])
             return
 
         data = data['api_data']
@@ -73,9 +74,10 @@ class Client(object):
             session.add(row)
         session.commit()
 
-    def _ship2(self):
+    def _member_ship(self):
         data = self._api.ship2(api_sort_key=1)
         if data['api_result'] != 1:
+            self._log.error(data['api_result_msg'])
             return
 
         session = Session()
@@ -100,6 +102,7 @@ class Client(object):
             row = db.Deck(
                 api_id=deck['api_id'],
                 api_name=deck['api_name'],
+                mission_status=deck['api_mission'][0],
                 mission_id=deck['api_mission'][1],
                 mission_time=deck['api_mission'][2])
 
@@ -113,9 +116,27 @@ class Client(object):
                 row.api_ship.append(s)
 
             session.add(row)
-
             self._log.debug('api_id: {0}, mission_id: {1}, mission_time: {2}'.format(row.api_id, row.mission_id, row.mission_time))
+        session.commit()
 
+        # check any mission completed
+        data = self._api.deck_port()
+        if data['api_result'] != 1:
+            self._log.error(data['api_result_msg'])
+            return
+
+        decks_data = data['api_data']
+        for deck_data in decks_data:
+            if deck_data['api_mission'][0] == 2:
+                deck = session.query(db.Deck).filter(db.Deck.api_id == deck_data['api_id']).first()
+                self._log.debug('deck {0} completed mission {1}'.format(deck.api_id, deck.mission_id))
+                data = self._api.result(api_deck_id=deck.api_id)
+                if data['api_result'] != 1:
+                    self._log.error(data['api_result_msg'])
+                    continue
+                deck.mission_status = 0
+                deck.mission_id = 0
+                deck.mission_time = 0
         session.commit()
 
 
@@ -124,7 +145,7 @@ class Client(object):
         session.query(db.Deck).delete()
         session.query(db.Ship).delete()
         session.commit()
-        self._ship2()
+        self._member_ship()
 
 
     def start_mission(self, api_deck_id, api_mission_id):
@@ -153,6 +174,7 @@ class Client(object):
         deck.mission_id = api_mission_id
         deck.mission_time = data['api_data']['api_complatetime']
         session.commit()
+        self._log.debug('update mission -- id: {0}, time: {1}'.format(deck.mission_id, deck.mission_time))
 
         return True
 
@@ -233,7 +255,7 @@ class Mission(object):
         session = Session()
         deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
 
-        if deck.mission_id <= 0:
+        if deck.mission_status <= 0:
             self._log.debug('start first mission')
             # not in a mission, start first time
             ok = self._client.start_mission(api_deck_id, api_mission_id)
@@ -241,6 +263,7 @@ class Mission(object):
                 self._log.error('deck {0} failed to start mission {1}'.foramt(api_deck_id, api_mission_id))
                 return
             # update cache value
+            session = Session()
             deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
 
         # calculate time interval
@@ -275,6 +298,7 @@ class Mission(object):
         if not ok:
             self._log.error('deck {0} failed to start mission {1}'.foramt(api_deck_id, api_mission_id))
             return
+        session = Session()
         deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
 
         # calculate time interval

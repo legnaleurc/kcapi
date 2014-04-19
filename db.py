@@ -24,6 +24,7 @@
 import sqlalchemy as sql
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.pool import StaticPool
 
 
 _Base = declarative_base()
@@ -59,6 +60,8 @@ class Deck(_Base):
     api_name = sql.Column(sql.String)
     api_ship = relationship('Ship', backref='deck')
 
+    # 0: no mission, 1: in a mission, 2: mission completed
+    mission_status = sql.Column(sql.Integer)
     mission_id = sql.Column(sql.Integer)
     mission_time = sql.Column(sql.Integer)
 
@@ -84,6 +87,12 @@ class Ship(_Base):
 
 
 def initialize(echo=False):
-    engine = sql.create_engine('sqlite:///:memory:', echo=echo)
+    engine = sql.create_engine(
+        'sqlite://',
+        echo=echo,
+        connect_args={
+            'check_same_thread': False,
+        },
+        poolclass=StaticPool)
     _Base.metadata.create_all(engine)
     return sessionmaker(bind=engine)
