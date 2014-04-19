@@ -22,8 +22,9 @@
 # THE SOFTWARE.
 
 
-import time
+import logging
 import sys
+import time
 
 import tornado.ioloop
 import tornado.web
@@ -40,6 +41,7 @@ Session = db.initialize()
 class Client(object):
 
     def __init__(self, api_token):
+        self._log = logging.getLogger('kcapi')
         self._api = API(api_token)
 
         # get all ship model
@@ -213,6 +215,7 @@ class ChargeHandler(APIHandler):
 class Mission(object):
 
     def __init__(self, client, event_loop):
+        self._log = logging.getLogger('kcapi')
         self._client = client
         self._event_loop = event_loop
         self._decks = {}
@@ -221,10 +224,13 @@ class Mission(object):
         if api_deck_id in self._decks:
             return
 
+        self._log.debug('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
+
         session = Session()
         deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
 
         if deck.mission_id <= 0:
+            self._log.debug('start first mission')
             # not in a mission, start first time
             self._client.start_mission(api_deck_id, api_mission_id)
             # update cache value
@@ -235,9 +241,13 @@ class Mission(object):
         current_time = time.time()
         delta = complete_time - current_time
 
+        self._log.debug('now: {0}, until: {1}, delta: {2}', current_time, complete_time, delta)
+
         # queue next action
         token = self._event_loop.set_timeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
         self._decks[api_deck_id] = token
+
+        self._log.debug('deck {0} start mission {1} ok'.format(api_deck_id, api_mission_id))
 
     def stop(self, api_deck_id):
         if api_deck_id not in self._decks:
@@ -270,6 +280,19 @@ def main(args=None):
         args = sys.argv
 
     api_token = args[1]
+
+    # setup logger
+    logger = logging.getLogger('kcapi')
+    logger.setLevel(logging.DEBUG)
+    formater = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    # add file handler
+    handler = logging.FileHandler('/tmp/kcapi.log')
+    handler.setFormatter(formater)
+    logger.addHandler(handler)
+    # add stdout handler
+    handler = logging.StreamHandler(sys.stdout)
+    handler.setFormatter(formater)
+    logger.addHandler(handler)
 
     client = Client(api_token)
     event_loop = task.EventLoop()

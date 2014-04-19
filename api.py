@@ -22,6 +22,7 @@
 
 
 import json
+import logging
 import re
 
 import requests
@@ -30,6 +31,7 @@ import requests
 class API(object):
 
     def __init__(self, api_token):
+        self._log = logging.getLogger('kcapi')
         self._api_token = api_token
         self._api_verno = 1
         self._server_prefix = 'http://125.6.189.135'
@@ -57,26 +59,29 @@ class API(object):
         if data:
             data_.update(data)
 
+        self._log.debug('request with: {0}'.format(data_))
+
         response = requests.post(
             self._server_prefix + path,
             data=data_,
             headers=headers)
         if response.status_code != 200:
+            self._log.error('http error: {0}'.format(response.status_code))
             return None
 
         m = re.match(r'^.*svdata=(.+)$', response.text)
         if not m:
             # TODO error log
-            print(response.text)
+            self._log.error('raw response: {0}', response.text)
             return None
         json_text = m.group(1)
         try:
             response = json.loads(json_text)
         except ValueError as e:
             # TODO error log
-            print(e)
-            print(response.text)
-            print(json_text)
+            self._log.error('json error: {0}', e)
+            self._log.error('json error: {0}', response.text)
+            self._log.error('json error: {0}', json_text)
             response = None
         return response
 
