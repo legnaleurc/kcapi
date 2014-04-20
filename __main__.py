@@ -129,11 +129,15 @@ class Client(object):
         for deck_data in decks_data:
             if deck_data['api_mission'][0] == 2:
                 deck = session.query(db.Deck).filter(db.Deck.api_id == deck_data['api_id']).first()
-                self._log.debug('deck {0} completed mission {1}'.format(deck.api_id, deck.mission_id))
+                self._log.debug('deck {0} returned from mission {1}'.format(deck.api_id, deck.mission_id))
+
                 data = self._api.result(api_deck_id=deck.api_id)
                 if data['api_result'] != 1:
                     self._log.error(data['api_result_msg'])
                     continue
+                data = data['api_data']
+                self._log.debug('mission result: {0}'.format(data['api_clear_result']))
+
                 deck.mission_status = 0
                 deck.mission_id = 0
                 deck.mission_time = 0
