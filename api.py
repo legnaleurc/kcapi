@@ -26,6 +26,7 @@ import logging
 import re
 
 import requests
+from requests.exceptions import RequestException
 
 
 class API(object):
@@ -61,10 +62,18 @@ class API(object):
 
         self._log.debug('request {0} with: {1}'.format(path, data))
 
-        response = requests.post(
-            self._server_prefix + path,
-            data=data_,
-            headers=headers)
+        # retry until response
+        while True:
+            try:
+                response = requests.post(
+                    self._server_prefix + path,
+                    data=data_,
+                    headers=headers,
+                    timeout=60)
+                break
+            except RequestException as e:
+                self._log.error(e)
+
         self._log.debug('response {0}'.format(response))
         if response.status_code != 200:
             self._log.error('http error: {0}'.format(response.status_code))
