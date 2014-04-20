@@ -24,6 +24,7 @@
 import json
 import logging
 import re
+from socket import timeout as SocketTimeoutError
 
 import requests
 from requests.exceptions import RequestException
@@ -71,7 +72,7 @@ class API(object):
                     headers=headers,
                     timeout=60)
                 break
-            except RequestException as e:
+            except (RequestException, SocketTimeoutError) as e:
                 self._log.error(e)
 
         self._log.debug('response {0}'.format(response))
