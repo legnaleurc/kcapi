@@ -116,7 +116,7 @@ class Client(object):
                 row.api_ship.append(s)
 
             session.add(row)
-            self._log.debug('api_id: {0}, mission_id: {1}, mission_time: {2}'.format(row.api_id, row.mission_id, row.mission_time))
+            self._log.info('api_id: {0}, mission_id: {1}, mission_time: {2}'.format(row.api_id, row.mission_id, row.mission_time))
         session.commit()
 
         # check any mission completed
@@ -129,14 +129,14 @@ class Client(object):
         for deck_data in decks_data:
             if deck_data['api_mission'][0] == 2:
                 deck = session.query(db.Deck).filter(db.Deck.api_id == deck_data['api_id']).first()
-                self._log.debug('deck {0} returned from mission {1}'.format(deck.api_id, deck.mission_id))
+                self._log.info('deck {0} returned from mission {1}'.format(deck.api_id, deck.mission_id))
 
                 data = self._api.result(api_deck_id=deck.api_id)
                 if data['api_result'] != 1:
                     self._log.error(data['api_result_msg'])
                     continue
                 data = data['api_data']
-                self._log.debug('mission result: {0}'.format(data['api_clear_result']))
+                self._log.info('mission result: {0}'.format(data['api_clear_result']))
 
                 deck.mission_status = 0
                 deck.mission_id = 0
@@ -178,7 +178,6 @@ class Client(object):
         deck.mission_id = api_mission_id
         deck.mission_time = data['api_data']['api_complatetime']
         session.commit()
-        self._log.debug('update mission -- id: {0}, time: {1}'.format(deck.mission_id, deck.mission_time))
 
         return True
 
@@ -254,13 +253,13 @@ class Mission(object):
         if api_deck_id in self._decks:
             return
 
-        self._log.debug('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
+        self._log.info('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
 
         session = Session()
         deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
 
         if deck.mission_status <= 0:
-            self._log.debug('start first mission')
+            self._log.info('start first mission')
             # not in a mission, start first time
             ok = self._client.start_mission(api_deck_id, api_mission_id)
             if not ok:
@@ -281,7 +280,7 @@ class Mission(object):
         token = self._event_loop.set_timeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
         self._decks[api_deck_id] = token
 
-        self._log.debug('deck {0} start mission {1} ok'.format(api_deck_id, api_mission_id))
+        self._log.info('deck {0} start mission {1} ok'.format(api_deck_id, api_mission_id))
 
     def stop(self, api_deck_id):
         if api_deck_id not in self._decks:
@@ -295,7 +294,7 @@ class Mission(object):
         if api_deck_id not in self._decks:
             return
 
-        self._log.debug('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
+        self._log.info('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
 
         # start next mission
         ok = self._client.start_mission(api_deck_id, api_mission_id)
@@ -310,11 +309,13 @@ class Mission(object):
         current_time = time.time()
         delta = complete_time - current_time
 
+        self._log.debug('now: {0}, until: {1}, delta: {2}'.format(current_time, complete_time, delta))
+
         # queue next action
         token = self._event_loop.set_timeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
         self._decks[api_deck_id] = token
 
-        self._log.debug('deck {0} start mission {1} ok'.format(api_deck_id, api_mission_id))
+        self._log.info('deck {0} start mission {1} ok'.format(api_deck_id, api_mission_id))
 
 
 def main(args=None):
