@@ -307,8 +307,10 @@ class Mission(object):
         delta = complete_time - current_time
 
         # queue next action
-        token = self._timer.setTimeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
+        token = self._event_loop.set_timeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
         self._decks[api_deck_id] = token
+
+        self._log.debug('deck {0} start mission {1} ok'.format(api_deck_id, api_mission_id))
 
 
 def main(args=None):
@@ -335,6 +337,8 @@ def main(args=None):
 
     mission = Mission(client=client, event_loop=event_loop)
     mission.start(api_deck_id=2, api_mission_id=3)
+    mission.start(api_deck_id=3, api_mission_id=37)
+    mission.start(api_deck_id=4, api_mission_id=38)
 
     event_loop.start()
 
