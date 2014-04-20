@@ -59,12 +59,13 @@ class API(object):
         if data:
             data_.update(data)
 
-        self._log.debug('request with: {0}'.format(data_))
+        self._log.debug('request {0} with: {1}'.format(path, data))
 
         response = requests.post(
             self._server_prefix + path,
             data=data_,
             headers=headers)
+        self._log.debug('response {0}'.format(response))
         if response.status_code != 200:
             self._log.error('http error: {0}'.format(response.status_code))
             return None
@@ -126,7 +127,7 @@ class API(object):
             'api_deck_id': api_deck_id,
         })
 
-    def nyukyo_start(self, api_ship_id, api_ndock_id, api_highspeed):
+    def nyukyo(self, api_ship_id, api_ndock_id, api_highspeed):
         return self._do_request('/kcsapi/api_req_nyukyo/start', {
             'api_ship_id': api_ship_id,
             'api_ndock_id': api_ndock_id,
