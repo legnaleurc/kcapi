@@ -23,7 +23,7 @@
 
 import sqlalchemy as sql
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker, relationship
+from sqlalchemy.orm import sessionmaker, relationship, backref
 from sqlalchemy.pool import StaticPool
 
 
@@ -84,6 +84,18 @@ class Ship(_Base):
     api_bull = sql.Column(sql.Integer)
 
     deck_id = sql.Column(sql.Integer, sql.ForeignKey('deck.api_id'))
+
+
+class NDock(_Base):
+
+    __tablename__ = 'ndock'
+
+    api_id = sql.Column(sql.Integer, primary_key=True)
+    api_state = sql.Column(sql.Integer)
+    api_ship_id = sql.Column(sql.Integer, sql.ForeignKey('ship.api_id'))
+    api_complete_time = sql.Column(sql.Integer)
+
+    ship = relationship('Ship', backref=backref('ndock', uselist=False))
 
 
 def initialize(echo=False):
