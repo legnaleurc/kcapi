@@ -48,6 +48,8 @@ class Client(object):
         self._master_ship()
         # get deck and ships
         self._member_ship()
+        # check mission
+        self._deck_port()
 
     def _master_ship(self):
         data = self._api.master_ship()
@@ -119,12 +121,14 @@ class Client(object):
             self._log.info('api_id: {0}, mission_id: {1}, mission_time: {2}'.format(row.api_id, row.mission_id, row.mission_time))
         session.commit()
 
+    def _deck_port(self):
         # check any mission completed
         data = self._api.deck_port()
         if data['api_result'] != 1:
             self._log.error(data['api_result_msg'])
             return
 
+        session = Session()
         decks_data = data['api_data']
         for deck_data in decks_data:
             if deck_data['api_mission'][0] == 2:
@@ -143,14 +147,14 @@ class Client(object):
                 deck.mission_time = 0
         session.commit()
 
-
     def update(self):
+        self._deck_port()
+        # FIXME should do lazy update
         session = Session()
         session.query(db.Deck).delete()
         session.query(db.Ship).delete()
         session.commit()
         self._member_ship()
-
 
     def start_mission(self, api_deck_id, api_mission_id):
         # update data
