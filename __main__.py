@@ -259,30 +259,15 @@ class Mission(object):
 
         self._log.info('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
 
+        # check if this deck is ready
         session = Session()
         deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
-
         if deck.mission_status <= 0:
-            self._log.info('start first mission')
-            # not in a mission, start first time
-            ok = self._client.start_mission(api_deck_id, api_mission_id)
-            if not ok:
-                self._log.error('deck {0} failed to start mission {1}'.foramt(api_deck_id, api_mission_id))
-                return
-            # update cache value
-            session = Session()
-            deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
+            self._log.info('deck {0} is ready, start mission {1}'.format(api_deck_id, api_mission_id))
+            deck = self._start_mission(api_deck_id, api_mission_id)
 
-        # calculate time interval
-        complete_time = deck.mission_time / 1000
-        current_time = time.time()
-        delta = complete_time - current_time
-
-        self._log.debug('now: {0}, until: {1}, delta: {2}'.format(current_time, complete_time, delta))
-
-        # queue next action
-        token = self._event_loop.set_timeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
-        self._decks[api_deck_id] = token
+        # do same work on done
+        self._queue_next(deck, api_deck_id, api_mission_id)
 
         self._log.info('deck {0} start mission {1} ok'.format(api_deck_id, api_mission_id))
 
@@ -294,20 +279,19 @@ class Mission(object):
         del self._decks[api_deck_id]
         self._event_loop.clear_timeout(token)
 
-    def _on_done(self, api_deck_id, api_mission_id):
-        if api_deck_id not in self._decks:
-            return
-
-        self._log.info('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
-
+    def _start_mission(self, api_deck_id, api_mission_id):
         # start next mission
         ok = self._client.start_mission(api_deck_id, api_mission_id)
         if not ok:
             self._log.error('deck {0} failed to start mission {1}'.foramt(api_deck_id, api_mission_id))
             return
+
         session = Session()
         deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
 
+        return deck
+
+    def _queue_next(self, deck, api_deck_id, api_mission_id):
         # calculate time interval
         complete_time = deck.mission_time / 1000
         current_time = time.time()
@@ -318,6 +302,17 @@ class Mission(object):
         # queue next action
         token = self._event_loop.set_timeout(delta, lambda: self._on_done(api_deck_id, api_mission_id))
         self._decks[api_deck_id] = token
+
+    def _on_done(self, api_deck_id, api_mission_id):
+        if api_deck_id not in self._decks:
+            return
+
+        self._log.info('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
+
+        # start mission
+        deck = self._start_mission(api_deck_id, api_mission_id)
+        # do same work on done
+        self._queue_next(deck, api_deck_id, api_mission_id)
 
         self._log.info('deck {0} start mission {1} ok'.format(api_deck_id, api_mission_id))
 
