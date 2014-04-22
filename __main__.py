@@ -434,6 +434,7 @@ class Nyukyo(object):
         del self._ndocks[api_ndock_id]
 
         ships = self._client.get_wounded_ships()
+        self._log.debug('nyukyo: {0}'.format(ships))
         if not ships:
             return
 
