@@ -99,11 +99,11 @@ class API(object):
     def basic(self):
         return self._do_request('/kcsapi/api_get_member/basic')
 
-    def port(self, api_port, api_sort_key=5, spi_sort_order=2):
+    def port(self, api_port):
         return self._do_request('/kcsapi/api_port/port', {
             'api_port': api_port,
-            'api_sort_key': api_sort_key,
-            'spi_sort_order': spi_sort_order,
+            'api_sort_key': 5,
+            'spi_sort_order': 2,
         })
 
     def master_ship(self):
@@ -134,6 +134,7 @@ class API(object):
         return self._do_request('/kcsapi/api_req_hokyu/charge', {
             'api_id_items': ','.join(map(str, api_id_items)),
             'api_kind': api_kind,
+            'api_onslot': 1,
         })
 
     def mission(self, api_deck_id, api_mission_id):
