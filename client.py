@@ -22,6 +22,8 @@
 
 
 import logging
+import math
+import random
 import time
 
 from api import API
@@ -39,22 +41,30 @@ class Client(object):
         self._log = logging.getLogger('kcapi')
         self._api = API(api_token)
 
-        # get all ship model
-        self._master_ship()
+        # get all information
+        self._api_start()
         # get deck and ships
-        self._member_ship()
-        # check mission
-        self._deck_port()
+        self._port()
 
-    def _master_ship(self):
-        data = self._api.master_ship()
+    def _api_start(self):
+        data = self._api.api_start2()
         if data['api_result'] != 1:
             self._log.error(data['api_result_msg'])
-            return
+            raise Exception('api_start2 error')
 
-        data = data['api_data']
+        self._master_data = data['api_data']
+        self._create_ship_type(self._master_data['api_mst_ship'])
+
+        data = self._api.basic()
+        if data['api_result'] != 1:
+            self._log.error(data['api_result_msg'])
+            raise Exception('basic error')
+
+        self._member_id = int(data['api_data']['api_member_id'])
+
+    def _create_ship_type(self, ship_data):
         session = Session()
-        for ship in data:
+        for ship in ship_data:
             row = db.ShipType(
                 api_id=ship['api_id'],
                 api_sortno=ship['api_sortno'],
@@ -71,15 +81,23 @@ class Client(object):
             session.add(row)
         session.commit()
 
-    def _member_ship(self):
-        data = self._api.ship2(api_sort_key=1)
+    def _port(self):
+        api_port = _api_port(self._member_id)
+        data = self._api.port(api_port)
         if data['api_result'] != 1:
             self._log.error(data['api_result_msg'])
             return
 
-        session = Session()
+        data = data['api_data']
+        deck_port = data['api_deck_port']
+        ndock = data['api_ndock']
+        ship = data['api_ship']
+        self._update_ship(ship)
+        self._update_deck(deck_port)
+        self._update_ndock(ndock)
 
-        ship_data = data['api_data']
+    def _update_ship(self, ship_data):
+        session = Session()
         for ship in ship_data:
             row = db.Ship(
                 api_id=ship['api_id'],
@@ -94,7 +112,8 @@ class Client(object):
             session.add(row)
         session.commit()
 
-        deck_data = data['api_data_deck']
+    def _update_deck(self, deck_data):
+        session = Session()
         for deck in deck_data:
             row = db.Deck(
                 api_id=deck['api_id'],
@@ -112,16 +131,8 @@ class Client(object):
             self._log.info('api_id: {0}, mission_id: {1}, mission_time: {2}'.format(row.api_id, row.mission_id, row.mission_time))
         session.commit()
 
-        self._ndock()
-
-    def _ndock(self):
-        data = self._api.ndock()
-        if data['api_result'] != 1:
-            self._log.error(data['api_result_msg'])
-            return
-
+    def _update_ndock(self, ndock_data):
         session = Session()
-        ndock_data = data['api_data']
         for ndock in ndock_data:
             row = db.NDock(
                 api_id=ndock['api_id'],
@@ -379,3 +390,19 @@ class Nyukyo(object):
             return
 
         self._queue_next(ndock.api_complete_time, ndock.api_id)
+
+
+def _api_port(member_id):
+    seed = [1171, 1841, 2517, 3101, 4819, 5233, 6311, 7977, 8103, 9377, 1000]
+    a = seed[10] + member_id % seed[10]
+    b = (9999999999 - math.floor(_unix_time() / seed[10]) - member_id) * seed[member_id % 10]
+    c = ''.join([str(_salt()) for i in range(4)])
+    return '{}{}{}'.format(a, b, c)
+
+
+def _unix_time():
+    return math.floor(time.time() * 1000)
+
+
+def _salt():
+    return math.floor(random.random() * 10)
