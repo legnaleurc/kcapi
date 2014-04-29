@@ -37,22 +37,19 @@ class API(object):
         self._api_token = api_token
         self._api_verno = 1
         self._server_prefix = 'http://125.6.189.135'
-        self._referer_port = '{0}/kcs/port.swf?version={1}'.format(
+        self._referer_core = '{0}/kcs/Core.swf?version={1}'.format(
             self._server_prefix,
-            '1.7.1')
-        self._referer_battle = '{0}/kcs/battle.swf?version={1}'.format(
-            self._server_prefix,
-            '1.4.4')
+            '2.0.5')
 
         self._user_agent = ('Mozilla/5.0'
-                            ' (Macintosh; Intel Mac OS X 10.9; rv:28.0)'
-                            ' Gecko/20100101 Firefox/28.0')
+                            ' (Macintosh; Intel Mac OS X 10.9; rv:29.0)'
+                            ' Gecko/20100101 Firefox/29.0')
 
     def _do_request(self, path, data=None):
         headers = {
             'User-Agent': self._user_agent,
             'DNT': 1,
-            'Referer': self._referer_port,
+            'Referer': self._referer_core,
         }
         data_ = {
             'api_verno': self._api_verno,
@@ -95,6 +92,19 @@ class API(object):
             self._log.error('json error: {0}', json_text)
             response = None
         return response
+
+    def api_start2(self):
+        return self._do_request('/kcsapi/api_start2')
+
+    def basic(self):
+        return self._do_request('/kcsapi/api_get_member/basic')
+
+    def port(self, api_port, api_sort_key=5, spi_sort_order=2):
+        return self._do_request('/kcsapi/api_port/port', {
+            'api_port': api_port,
+            'api_sort_key': api_sort_key,
+            'spi_sort_order': spi_sort_order,
+        })
 
     def master_ship(self):
         return self._do_request('/kcsapi/api_get_master/ship')
