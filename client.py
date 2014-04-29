@@ -81,7 +81,7 @@ class Client(object):
             session.add(row)
         session.commit()
 
-    def _port(self):
+    def _create_port(self):
         api_port = _api_port(self._member_id)
         data = self._api.port(api_port)
         if data['api_result'] != 1:
@@ -92,11 +92,11 @@ class Client(object):
         deck_port = data['api_deck_port']
         ndock = data['api_ndock']
         ship = data['api_ship']
-        self._update_ship(ship)
-        self._update_deck(deck_port)
-        self._update_ndock(ndock)
+        self._create_ship(ship)
+        self._create_deck(deck_port)
+        self._create_ndock(ndock)
 
-    def _update_ship(self, ship_data):
+    def _create_ship(self, ship_data):
         session = Session()
         for ship in ship_data:
             row = db.Ship(
@@ -112,7 +112,7 @@ class Client(object):
             session.add(row)
         session.commit()
 
-    def _update_deck(self, deck_data):
+    def _create_deck(self, deck_data):
         session = Session()
         for deck in deck_data:
             row = db.Deck(
@@ -131,7 +131,7 @@ class Client(object):
             self._log.info('api_id: {0}, mission_id: {1}, mission_time: {2}'.format(row.api_id, row.mission_id, row.mission_time))
         session.commit()
 
-    def _update_ndock(self, ndock_data):
+    def _create_ndock(self, ndock_data):
         session = Session()
         for ndock in ndock_data:
             row = db.NDock(
@@ -169,20 +169,13 @@ class Client(object):
         session.commit()
 
     def _update_all(self):
-        self._deck_port()
         # FIXME should do lazy update
         session = Session()
         session.query(db.Deck).delete()
         session.query(db.NDock).delete()
         session.query(db.Ship).delete()
         session.commit()
-        self._member_ship()
-
-    def _update_ndock(self):
-        session = Session()
-        session.query(db.NDock).delete()
-        session.commit()
-        self._ndock()
+        self._create_port()
 
     def start_mission(self, api_deck_id, api_mission_id):
         # update data
@@ -215,14 +208,14 @@ class Client(object):
 
     def nyukyo(self, api_ship_id, api_ndock_id, api_highspeed):
         # update data
-        self._update_ndock()
+        self._update_all()
 
         data = self._api.nyukyo(api_ship_id=api_ship_id, api_ndock_id=api_ndock_id, api_highspeed=api_highspeed)
         if data['api_result'] != 1:
             self._log.error('response error: {0}'.format(data['api_result_msg']))
             return False
 
-        self._update_ndock()
+        self._update_all()
 
         return True
 
