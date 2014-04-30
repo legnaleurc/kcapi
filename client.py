@@ -44,7 +44,7 @@ class Client(object):
         # get all information
         self._api_start()
         # get deck and ships
-        self._port()
+        self._create_port()
 
     def _api_start(self):
         data = self._api.api_start2()
@@ -95,6 +95,7 @@ class Client(object):
         self._create_ship(ship)
         self._create_deck(deck_port)
         self._create_ndock(ndock)
+        self._check_mission_result(deck_port)
 
     def _create_ship(self, ship_data):
         session = Session()
@@ -142,15 +143,8 @@ class Client(object):
             session.add(row)
         session.commit()
 
-    def _deck_port(self):
-        # check any mission completed
-        data = self._api.deck_port()
-        if data['api_result'] != 1:
-            self._log.error(data['api_result_msg'])
-            return
-
+    def _check_mission_result(self, decks_data):
         session = Session()
-        decks_data = data['api_data']
         for deck_data in decks_data:
             if deck_data['api_mission'][0] == 2:
                 deck = session.query(db.Deck).filter(db.Deck.api_id == deck_data['api_id']).first()
