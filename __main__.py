@@ -60,12 +60,12 @@ def main(args=None):
     # event_loop = task.EventLoop()
 
     mission = client.Mission(client=client_, event_loop=event_loop)
-    mission.start(api_deck_id=2, api_mission_id=2)
-    mission.start(api_deck_id=3, api_mission_id=5)
-    mission.start(api_deck_id=4, api_mission_id=6)
+    mission.start(api_deck_id=2, api_mission_id=5)
+    mission.start(api_deck_id=3, api_mission_id=37)
+    mission.start(api_deck_id=4, api_mission_id=38)
 
-    nyukyo = client.Nyukyo(client=client_, event_loop=event_loop)
-    nyukyo.start()
+    # nyukyo = client.Nyukyo(client=client_, event_loop=event_loop)
+    # nyukyo.start()
 
     event_loop.start()
 
