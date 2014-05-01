@@ -95,7 +95,9 @@ class Client(object):
         self._create_ship(ship)
         self._create_deck(deck_port)
         self._create_ndock(ndock)
-        self._check_mission_result(deck_port)
+        need_refresh = self._check_mission_result(deck_port)
+        if need_refresh:
+            self._update_all()
 
     def _create_ship(self, ship_data):
         session = Session()
@@ -144,6 +146,7 @@ class Client(object):
         session.commit()
 
     def _check_mission_result(self, decks_data):
+        need_refresh = False
         session = Session()
         for deck_data in decks_data:
             if deck_data['api_mission'][0] == 2:
@@ -160,7 +163,10 @@ class Client(object):
                 deck.mission_status = 0
                 deck.mission_id = 0
                 deck.mission_time = 0
+
+                need_refresh = True
         session.commit()
+        return need_refresh
 
     def _update_all(self):
         # FIXME should do lazy update
