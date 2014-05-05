@@ -1,3 +1,5 @@
 requests
 tornado
 SQLAlchemy
+PyDispatcher
+git+https://github.com/legnaleurc/tornadio2.git@py6

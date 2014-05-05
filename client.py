@@ -28,7 +28,7 @@ import time
 
 from api import API
 import db
-import task
+import event
 
 
 # create session class
@@ -37,10 +37,16 @@ Session = db.initialize()
 
 class Client(object):
 
-    def __init__(self, api_token):
+    def __init__(self):
         self._log = logging.getLogger('kcapi')
-        self._api = API(api_token)
+        self._api = None
 
+    @property
+    def is_ready(self):
+        return not not self._api
+
+    def set_api_token(self, api_token):
+        self._api = API(api_token)
         # get all information
         self._api_start()
         # get deck and ships
@@ -53,6 +59,7 @@ class Client(object):
             raise Exception('api_start2 error')
 
         self._master_data = data['api_data']
+        event.api_started.emit(data=data['api_data'])
         self._create_ship_type(self._master_data['api_mst_ship'])
 
         data = self._api.basic()
@@ -159,6 +166,7 @@ class Client(object):
                     continue
                 data = data['api_data']
                 self._log.info('mission result: {0}'.format(data['api_clear_result']))
+                event.mission_result.emit(api_deck_id=deck.api_id, api_clear_result=data['api_clear_result'])
 
                 deck.mission_status = 0
                 deck.mission_id = 0
@@ -244,145 +252,6 @@ class Client(object):
                  # order by emergency
                  .order_by(db.Ship.api_nowhp * 100 / db.Ship.api_maxhp))
         return [ship for ship, in ships]
-
-
-class Mission(object):
-
-    def __init__(self, client, event_loop):
-        self._log = logging.getLogger('kcapi')
-        self._client = client
-        self._event_loop = event_loop
-        self._decks = {}
-
-    def start(self, api_deck_id, api_mission_id):
-        if api_deck_id in self._decks:
-            return
-
-        self._log.debug('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
-
-        # check if this deck is ready
-        session = Session()
-        deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
-        ms_complete_time = deck.mission_time
-        if deck.mission_status <= 0:
-            self._log.info('deck {0} is ready, start mission {1}'.format(api_deck_id, api_mission_id))
-            ms_complete_time = self._start_mission(api_deck_id, api_mission_id)
-            if ms_complete_time <= 0:
-                return
-
-        # do same work on done
-        self._queue_next(ms_complete_time, api_deck_id, api_mission_id)
-
-        self._log.debug('deck {0} start mission {1} ok'.format(api_deck_id, api_mission_id))
-
-    def stop(self, api_deck_id):
-        if api_deck_id not in self._decks:
-            return
-
-        token = self._decks[api_deck_id]
-        del self._decks[api_deck_id]
-        self._event_loop.remove_timeout(token)
-
-    def _start_mission(self, api_deck_id, api_mission_id):
-        # start next mission
-        ok = self._client.start_mission(api_deck_id, api_mission_id)
-        if not ok:
-            self._log.error('deck {0} failed to start mission {1}'.format(api_deck_id, api_mission_id))
-            return 0
-
-        session = Session()
-        deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
-        return deck.mission_time
-
-    def _queue_next(self, ms_complete_time, api_deck_id, api_mission_id):
-        # calculate time interval
-        complete_time = ms_complete_time / 1000
-        # queue next action
-        token = self._event_loop.add_timeout(complete_time, lambda: self._on_done(api_deck_id, api_mission_id))
-        self._decks[api_deck_id] = token
-
-    def _on_done(self, api_deck_id, api_mission_id):
-        if api_deck_id not in self._decks:
-            return
-
-        self._log.debug('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
-
-        # start mission
-        ms_complete_time = self._start_mission(api_deck_id, api_mission_id)
-        if ms_complete_time <= 0:
-            return
-        # do same work on done
-        self._queue_next(ms_complete_time, api_deck_id, api_mission_id)
-
-        self._log.debug('deck {0} start mission {1} ok'.format(api_deck_id, api_mission_id))
-
-
-class Nyukyo(object):
-
-    def __init__(self, client, event_loop):
-        self._log = logging.getLogger('kcapi')
-        self._client = client
-        self._event_loop = event_loop
-        self._ndocks = {}
-
-    def start(self):
-        ships = self._client.get_wounded_ships()
-        self._log.debug('nyukyo: {0}'.format(ships))
-
-        session = Session()
-        # query all ndocks
-        ndocks = session.query(db.NDock)
-        ships_index = 0
-        for ndock in ndocks:
-            if ships_index >= len(ships):
-                break
-            # if it is ready, repair a ship
-            if ndock.api_complete_time == 0:
-                # query all ships that need to repair
-                ship_id = ships[ships_index]
-                ships_index += 1
-                ndock = self._nyukyo(api_ship_id=ship_id, api_ndock_id=ndock.api_id)
-
-            # queue next ship if any
-            self._queue_next(ndock.api_complete_time, ndock.api_id)
-
-    def stop(self):
-        for ndock_id, token in self._ndocks.iteritems():
-            self._event_loop.remove_timeout(token)
-        self._ndocks = {}
-
-    def _nyukyo(self, api_ship_id, api_ndock_id):
-        self._log.debug('nyukyo: ship {0}, ndock {1}'.format(api_ship_id, api_ndock_id))
-        ok = self._client.nyukyo(api_ship_id=api_ship_id, api_ndock_id=api_ndock_id, api_highspeed=0)
-        if not ok:
-            return
-        session = Session()
-        ndock = session.query(db.NDock).filter(db.NDock.api_id == api_ndock_id).first()
-        return ndock
-
-    def _queue_next(self, ms_complete_time, api_ndock_id):
-        # calculate time interval
-        complete_time = ms_complete_time / 1000
-        # queue next action
-        token = self._event_loop.add_timeout(complete_time, lambda: self._on_done(api_ndock_id))
-        self._ndocks[api_ndock_id] = token
-
-    def _on_done(self, api_ndock_id):
-        if api_ndock_id not in self._ndocks:
-            return
-        del self._ndocks[api_ndock_id]
-
-        ships = self._client.get_wounded_ships()
-        self._log.debug('nyukyo: {0}'.format(ships))
-        if not ships:
-            return
-
-        ship_id = ships[0]
-        ndock = self._nyukyo(api_ship_id=ship_id, api_ndock_id=api_ndock_id)
-        if not ndock:
-            return
-
-        self._queue_next(ndock.api_complete_time, ndock.api_id)
 
 
 def _api_port(member_id):

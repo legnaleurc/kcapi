@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jquery/2.1.0/jquery.min.js"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/0.9.16/socket.io.min.js"></script>
+</head>
+<body>
+    <div>
+        <h1>艦隊これくしょん</h1>
+        <div>
+            <label for="input-api-token">えぃぴぃあぃとーくん</label>
+            <input id="input-api-token" type="text" />
+        </div>
+        <div>
+            <button id="btn-api-token">開始</button>
+        </div>
+    </div>
+    <div>
+        <h1>遠征</h1>
+        <div>
+            <label for="mission-deck-2">第二艦隊</label>
+            <select id="mission-deck-2">
+                <option value="3">3</option>
+                <option value="5">5</option>
+            </select>
+        </div>
+        <div>
+            <label for="mission-deck-3">第三艦隊</label>
+            <select id="mission-deck-3">
+                <option value="21">21</option>
+                <option value="37">37</option>
+            </select>
+        </div>
+        <div>
+            <label for="mission-deck-4">第四艦隊</label>
+            <select id="mission-deck-4">
+                <option value="38">38</option>
+            </select>
+        </div>
+        <div>
+            <button id="btn-start-mission">開始</button>
+        </div>
+    </div>
+    <script>
+        var server = new io.connect('/');
+        server.on('disconnect', function() {
+            server.socket.reconnect();
+        });
+        server.on('message', function(data) {
+            console.info(data);
+        });
+        server.on('api_started', function(data) {
+            console.info(data);
+        });
+
+        var btn_api_token = $('#btn-api-token');
+        var input_api_token = $('#input-api-token');
+        btn_api_token.on('click', function () {
+            $.post('/start', {
+                api_token: input_api_token.val(),
+            });
+        });
+
+        var btn_start_mission = $('#btn-start-mission');
+        var mission_deck_2 = $('#mission-deck-2');
+        var mission_deck_3 = $('#mission-deck-3');
+        var mission_deck_4 = $('#mission-deck-4');
+        btn_start_mission.on('click', function () {
+            $.post('/start_mission', {
+                api_deck_id: 2,
+                api_mission_id: mission_deck_2.val(),
+            });
+            $.post('/start_mission', {
+                api_deck_id: 3,
+                api_mission_id: mission_deck_3.val(),
+            });
+            $.post('/start_mission', {
+                api_deck_id: 4,
+                api_mission_id: mission_deck_4.val(),
+            });
+        });
+    </script>
+</body>
+</html>
