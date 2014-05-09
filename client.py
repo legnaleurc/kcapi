@@ -255,7 +255,7 @@ class Client(object):
 
 
 def _api_port(member_id):
-    seed = [1171, 1841, 2517, 3101, 4819, 5233, 6311, 7977, 8103, 9377, 1000]
+    seed = [2919, 4819, 7301, 1931, 5873, 9027, 6157, 3393, 8719, 1497, 1000]
     a = seed[10] + member_id % seed[10]
     b = (9999999999 - math.floor(_unix_time() / seed[10]) - member_id) * seed[member_id % 10]
     c = ''.join([str(_salt()) for i in range(4)])
