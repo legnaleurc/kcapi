@@ -39,7 +39,7 @@ class API(object):
         self._server_prefix = 'http://125.6.189.135'
         self._referer_core = '{0}/kcs/Core.swf?version={1}'.format(
             self._server_prefix,
-            '2.0.9')
+            'ldtixityifwi')
 
         self._user_agent = ('Mozilla/5.0'
                             ' (Macintosh; Intel Mac OS X 10.9; rv:29.0)'

@@ -255,16 +255,16 @@ class Client(object):
 
 
 def _api_port(member_id):
-    seed = [2919, 4819, 7301, 1931, 5873, 9027, 6157, 3393, 8719, 1497, 1000]
-    a = seed[10] + member_id % seed[10]
-    b = (9999999999 - math.floor(_unix_time() / seed[10]) - member_id) * seed[member_id % 10]
-    c = ''.join([str(_salt()) for i in range(4)])
-    return '{}{}{}'.format(a, b, c)
+    seed = [1802, -2, -528, 72, -60, -956, -1, 8118, -1, -4]
+    a = str((_salt_1() * 1000) + (member_id % 1000))
+    b = str((0x00000002540BE3FF - math.floor(time.time()) - member_id) * seed[member_id % 10])
+    c = str(_salt_2())
+    return a + b + c
 
 
-def _unix_time():
-    return math.floor(time.time() * 1000)
+def _salt_1():
+    return 1 + math.floor(random.random() * 9)
 
 
-def _salt():
-    return math.floor(random.random() * 10)
+def _salt_2():
+    return 1000 + math.floor(random.random() * 8231)
