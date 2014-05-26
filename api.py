@@ -157,3 +157,9 @@ class API(object):
 
     def ndock(self):
         return self._do_request('/kcsapi/api_get_member/ndock')
+
+    def useitem(self):
+        return self._do_request('/kcsapi/api_get_member/useitem')
+
+    def get_missions(self):
+        return self._do_request('/kcsapi/api_get_member/mission')

@@ -172,6 +172,11 @@ class Client(object):
                 deck.mission_id = 0
                 deck.mission_time = 0
 
+                # NOTE nop, just simulate flash client
+                api_port = _api_port(self._member_id)
+                self._api.port(api_port)
+                self._api.useitem()
+
                 need_refresh = True
         session.commit()
         return need_refresh
@@ -198,11 +203,17 @@ class Client(object):
                 self._log.error('response error: {0}'.format(data['api_result_msg']))
                 return False
 
+        # NOTE nop, just simulate flash client
+        self._api.get_missions()
+
         # start mission
         data = self._api.mission(api_deck_id=api_deck_id, api_mission_id=api_mission_id)
         if data['api_result'] != 1:
             self._log.error('response error: {0}'.format(data['api_result_msg']))
             return False
+
+        # NOTE nop, just simulate flash client
+        self._api.deck()
 
         # update cache
         deck = (session.query(db.Deck)
@@ -218,10 +229,16 @@ class Client(object):
         # update data
         self._update_all()
 
+        # NOTE nop, just simulate flash client
+        self._api.ndock()
+
         data = self._api.nyukyo(api_ship_id=api_ship_id, api_ndock_id=api_ndock_id, api_highspeed=api_highspeed)
         if data['api_result'] != 1:
             self._log.error('response error: {0}'.format(data['api_result_msg']))
             return False
+
+        # NOTE nop, just simulate flash client
+        self._api.ndock()
 
         self._update_all()
 
