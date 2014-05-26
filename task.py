@@ -97,7 +97,7 @@ class _Mission(object):
             self._log.error('deck {0} failed to start mission {1}'.format(api_deck_id, api_mission_id))
             return 0
 
-        mission_started.emit('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
+        event.mission_started.emit('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
 
         session = Session()
         deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
