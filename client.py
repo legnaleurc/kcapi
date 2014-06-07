@@ -25,6 +25,9 @@ import logging
 import math
 import random
 import time
+import re
+
+from tornado.util import ObjectDict
 
 from api import API
 import db
@@ -271,17 +274,63 @@ class Client(object):
         return [ship for ship, in ships]
 
 
-def _api_port(member_id):
-    seed = [1802, -2, -528, 72, -60, -956, -1, 8118, -1, -4]
-    a = str((_salt_1() * 1000) + (member_id % 1000))
-    b = str((0x00000002540BE3FF - math.floor(time.time()) - member_id) * seed[member_id % 10])
-    c = str(_salt_2())
-    return a + b + c
+_Il = [1623, 5727, 9278, 3527, 4976, 7180734, 6632, 3708, 4796, 9675, 13, 6631, 2987, 10, 1901, 9881, 1000, 3527]
 
 
-def _salt_1():
-    return 1 + math.floor(random.random() * 9)
+def _api_port(ll):
+    lI = _create_key()
+    return lI.t(
+        lI.s(
+            lI.u(
+                lI.z(
+                    _Il[16],
+                    lI.u(
+                        lI.i(9),
+                        1)),
+                lI.p(
+                    _Il[16],
+                    ll))),
+        lI.s(
+            lI.z(
+                lI.m(
+                    lI.z(
+                        _Il[5],
+                        lI.l(
+                            lI.s(ll),
+                            0,
+                            4)),
+                    lI.u(
+                        lI.n(),
+                        ll)),
+                _Il[_I1(lI.p(10,ll),lI)])),
+        lI.s(
+            lI.u(
+                lI.i(
+                    lI.z(
+                        9,
+                        _Il[16])),
+                _Il[16])))
 
 
-def _salt_2():
-    return 1000 + math.floor(random.random() * 8231)
+def _create_key():
+    is_int = re.compile(r'\d+')
+    key = ObjectDict()
+    key.r = math.floor
+    key.i = lambda a: key.r(random.random() * a)
+    key.l = lambda a, b, c: int(a[b:b+c]) if is_int.match(a[b:b+c]) else None
+    key.m = lambda a, b: a - b
+    key.n = lambda: key.r(time.time())
+    key.p = lambda a, b: b % a
+    key.s = str
+    key.t = lambda *args: ''.join(args)
+    key.u = lambda a, b: a + b
+    key.y = math.sqrt
+    key.z = lambda a, b: a * b
+    return key
+
+
+def _I1(II, lI):
+    ll = 0
+    while II != lI.l(lI.s(lI.y(_Il[_Il[13]])),ll,1):
+        ll += 1
+    return ll
