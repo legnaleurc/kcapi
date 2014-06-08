@@ -77,7 +77,8 @@ class StartHandler(RequestHandler):
 
     def post(self):
         api_token = self.get_argument('api_token')
-        self.triggered.emit(api_token)
+        api_starttime = self.get_argument('api_starttime')
+        self.triggered.emit(api_token, api_starttime)
 
 
 class StartMissionHandler(RequestHandler):
@@ -113,7 +114,7 @@ def main(args=None):
 
     application.listen(8000)
 
-    StartHandler.triggered.connect(bg_task.set_api_token)
+    StartHandler.triggered.connect(bg_task.setup_api)
     StartMissionHandler.triggered.connect(bg_task.start_mission)
     event.api_started.connect(RouterConnection.on_api_started)
     event.mission_started.connect(RouterConnection.on_mission_started)

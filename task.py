@@ -37,8 +37,8 @@ class Task(object):
         self._mission = _Mission(self._client, self._io_loop)
         self._nyukyo = _Nyukyo(self._client, self._io_loop)
 
-    def set_api_token(self, api_token):
-        self._io_loop.add_callback(lambda: self._client.set_api_token(api_token))
+    def setup_api(self, api_token, api_starttime):
+        self._io_loop.add_callback(lambda: self._client.setup_api(api_token, api_starttime))
 
     def start_mission(self, api_deck_id, api_mission_id):
         self._io_loop.add_callback(lambda: self._mission.start(api_deck_id, api_mission_id))

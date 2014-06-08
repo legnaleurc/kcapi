@@ -48,7 +48,7 @@ class Client(object):
     def is_ready(self):
         return not not self._api
 
-    def set_api_token(self, api_token):
+    def setup_api(self, api_token, api_starttime):
         self._api = API(api_token, api_starttime)
         # get all information
         self._api_start()
