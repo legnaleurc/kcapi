@@ -24,6 +24,7 @@
 import json
 import logging
 import re
+import urllib.parse
 from socket import timeout as SocketTimeoutError
 
 import requests
@@ -32,14 +33,16 @@ from requests.exceptions import RequestException
 
 class API(object):
 
-    def __init__(self, api_token):
+    def __init__(self, api_token, api_starttime):
         self._log = logging.getLogger('kcapi')
         self._api_token = api_token
+        self._api_starttime = api_starttime
         self._api_verno = 1
         self._server_prefix = 'http://125.6.189.135'
-        self._referer_core = '{0}/kcs/Core.swf?version={1}'.format(
+        self._referer_core = '{0}/kcs/mainD2.swf?api_token={1}&api_starttime={2}/[[DYNAMIC]]/1'.format(
             self._server_prefix,
-            'ldtixityifwi')
+            self._api_token,
+            self._api_starttime)
 
         self._user_agent = ('Mozilla/5.0'
                             ' (Macintosh; Intel Mac OS X 10.9; rv:29.0)'
@@ -48,7 +51,9 @@ class API(object):
     def _do_request(self, path, data=None):
         headers = {
             'User-Agent': self._user_agent,
+            'Connection': 'keep-alive',
             'DNT': 1,
+            'Content-Type': 'application/x-www-form-urlencoded',
             'Referer': self._referer_core,
         }
         data_ = {
@@ -57,6 +62,7 @@ class API(object):
         }
         if data:
             data_.update(data)
+        data_ = self._encode_uri_components(data_)
 
         self._log.debug('request {0} with: {1}'.format(path, data))
 
@@ -67,7 +73,8 @@ class API(object):
                     self._server_prefix + path,
                     data=data_,
                     headers=headers,
-                    timeout=60)
+                    timeout=60,
+                    stream=False)
                 break
             except (RequestException, SocketTimeoutError) as e:
                 self._log.error(e)
@@ -92,6 +99,12 @@ class API(object):
             self._log.error('json error: {0}', json_text)
             response = None
         return response
+
+    def _encode_uri_components(self, data):
+        data_ = []
+        for key, value in data.items():
+            data_.append('{0}={1}'.format(key.replace('_', '%5F'), value))
+        return '&'.join(data_)
 
     def api_start2(self):
         return self._do_request('/kcsapi/api_start2')

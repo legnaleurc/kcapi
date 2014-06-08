@@ -49,7 +49,7 @@ class Client(object):
         return not not self._api
 
     def set_api_token(self, api_token):
-        self._api = API(api_token)
+        self._api = API(api_token, api_starttime)
         # get all information
         self._api_start()
         # get deck and ships
