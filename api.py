@@ -31,6 +31,18 @@ import requests
 from requests.exceptions import RequestException
 
 
+def _do_self_request(path):
+    response = requests.get('http://127.0.0.1:1080' + path)
+    response = json.loads(response.text)
+    return response
+
+def api_start():
+    return _do_self_request('/api_start')
+
+def api_port():
+    return _do_self_request('/api_port')
+
+
 class API(object):
 
     def __init__(self, api_token, api_starttime):

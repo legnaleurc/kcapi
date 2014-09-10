@@ -28,11 +28,13 @@ import sys
 from threading import Thread
 
 from tornado.ioloop import IOLoop
-from tornado.web import Application, RequestHandler
-from tornadio2 import SocketConnection, TornadioRouter
+# from tornado.web import Application, RequestHandler
+# from tornadio2 import SocketConnection, TornadioRouter
+# import tornado
 
 import event
 import task
+import client
 
 
 def setup_logger():
@@ -50,45 +52,45 @@ def setup_logger():
     logger.addHandler(handler)
 
 
-class RouterConnection(SocketConnection):
+# class RouterConnection(SocketConnection):
 
-    @classmethod
-    def on_api_started(cls, *args, **kwargs):
-        cls.emit_to_all('api_started', **kwargs['data'])
+#     @classmethod
+#     def on_api_started(cls, *args, **kwargs):
+#         cls.emit_to_all('api_started', **kwargs['data'])
 
-    @classmethod
-    def on_mission_started(cls, msg):
-        cls.send_to_all(msg)
+#     @classmethod
+#     def on_mission_started(cls, msg):
+#         cls.send_to_all(msg)
 
-    @classmethod
-    def on_mission_result(cls, api_deck_id, api_clear_result):
-        cls.emit_to_all('mission_result', api_deck_id=api_deck_id, api_clear_result=api_clear_result)
-
-
-class IndexHandler(RequestHandler):
-
-    def get(self):
-        self.render('index.html')
+#     @classmethod
+#     def on_mission_result(cls, api_deck_id, api_clear_result):
+#         cls.emit_to_all('mission_result', api_deck_id=api_deck_id, api_clear_result=api_clear_result)
 
 
-class StartHandler(RequestHandler):
+# class IndexHandler(RequestHandler):
 
-    triggered = event.Signal()
-
-    def post(self):
-        api_token = self.get_argument('api_token')
-        api_starttime = self.get_argument('api_starttime')
-        self.triggered.emit(api_token, api_starttime)
+#     def get(self):
+#         self.render('index.html')
 
 
-class StartMissionHandler(RequestHandler):
+# class StartHandler(RequestHandler):
 
-    triggered = event.Signal()
+#     triggered = event.Signal()
 
-    def post(self):
-        api_deck_id = self.get_argument('api_deck_id')
-        api_mission_id = self.get_argument('api_mission_id')
-        self.triggered.emit(api_deck_id, api_mission_id)
+#     def post(self):
+#         api_token = self.get_argument('api_token')
+#         api_starttime = self.get_argument('api_starttime')
+#         self.triggered.emit(api_token, api_starttime)
+
+
+# class StartMissionHandler(RequestHandler):
+
+#     triggered = event.Signal()
+
+#     def post(self):
+#         api_deck_id = self.get_argument('api_deck_id')
+#         api_mission_id = self.get_argument('api_mission_id')
+#         self.triggered.emit(api_deck_id, api_mission_id)
 
 
 def main(args=None):
@@ -97,51 +99,52 @@ def main(args=None):
 
     setup_logger()
 
-    router = TornadioRouter(RouterConnection)
+    # router = TornadioRouter(RouterConnection)
 
-    bg_loop = IOLoop()
-    bg_thread = Thread(target=lambda: bg_loop.start())
-    bg_task = task.Task(bg_loop)
+    # bg_loop = IOLoop()
+    # bg_thread = Thread(target=lambda: bg_loop.start())
+    # bg_task = task.Task(bg_loop)
 
-    application = Application(
-        router.apply_routes([
-            (r"/", IndexHandler),
-            (r"/start", StartHandler),
-            (r"/start_mission", StartMissionHandler),
-        ]),
-        debug=True,
-    )
+    # application = Application(
+    #     router.apply_routes([
+    #         (r"/", IndexHandler),
+    #         (r"/start", StartHandler),
+    #         (r"/start_mission", StartMissionHandler),
+    #     ]),
+    #     debug=True,
+    # )
 
-    application.listen(8000)
+    # application.listen(8000)
 
-    StartHandler.triggered.connect(bg_task.setup_api)
-    StartMissionHandler.triggered.connect(bg_task.start_mission)
-    event.api_started.connect(RouterConnection.on_api_started)
-    event.mission_started.connect(RouterConnection.on_mission_started)
-    event.mission_result.connect(RouterConnection.on_mission_result)
+    # StartHandler.triggered.connect(bg_task.setup_api)
+    # StartMissionHandler.triggered.connect(bg_task.start_mission)
+    # event.api_started.connect(RouterConnection.on_api_started)
+    # event.mission_started.connect(RouterConnection.on_mission_started)
+    # event.mission_result.connect(RouterConnection.on_mission_result)
 
-    try:
-        bg_thread.start()
-        IOLoop.instance().start()
-    except KeyboardInterrupt:
-        bg_loop.stop()
-        IOLoop.instance().stop()
+    # try:
+    #     bg_thread.start()
+    #     IOLoop.instance().start()
+    # except KeyboardInterrupt:
+    #     bg_loop.stop()
+    #     IOLoop.instance().stop()
 
     # api_token = args[1]
 
-    # client_ = client.Client(api_token)
-    # event_loop = tornado.ioloop.IOLoop()
+    client_ = client.Client()
+    client_.setup_api()
+    event_loop = IOLoop()
     # event_loop = task.EventLoop()
 
-    # mission = client.Mission(client=client_, event_loop=event_loop)
-    # mission.start(api_deck_id=2, api_mission_id=5)
-    # mission.start(api_deck_id=3, api_mission_id=21)
-    # mission.start(api_deck_id=4, api_mission_id=38)
+    mission = task._Mission(client=client_, event_loop=event_loop)
+    mission.start(api_deck_id=2, api_mission_id=5)
+    mission.start(api_deck_id=3, api_mission_id=21)
+    mission.start(api_deck_id=4, api_mission_id=38)
 
-    # nyukyo = client.Nyukyo(client=client_, event_loop=event_loop)
-    # nyukyo.start()
+    nyukyo = task._Nyukyo(client=client_, event_loop=event_loop)
+    nyukyo.start()
 
-    # event_loop.start()
+    event_loop.start()
 
     return 0
 

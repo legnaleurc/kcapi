@@ -29,7 +29,7 @@ import re
 
 from tornado.util import ObjectDict
 
-from api import API
+from api import API, api_start, api_port
 import db
 import event
 
@@ -48,29 +48,31 @@ class Client(object):
     def is_ready(self):
         return not not self._api
 
-    def setup_api(self, api_token, api_starttime):
-        self._api = API(api_token, api_starttime)
+    def setup_api(self):
+        data = api_start()
+        self._api = API(data['api_token'], data['api_starttime'])
         # get all information
-        self._api_start()
+        self._api_start(data['api_start'], data['api_basic'])
         # get deck and ships
         self._create_port()
 
-    def _api_start(self):
-        data = self._api.api_start2()
-        if data['api_result'] != 1:
-            self._log.error(data['api_result_msg'])
-            raise Exception('api_start2 error')
+    def _api_start(self, api_start, api_basic):
+        # data = self._api.api_start2()
+        # if data['api_result'] != 1:
+        #     self._log.error(data['api_result_msg'])
+        #     raise Exception('api_start2 error')
 
-        self._master_data = data['api_data']
-        event.api_started.emit(data=data['api_data'])
+        # self._master_data = data['api_data']
+        self._master_data = api_start
+        event.api_started.emit(data=api_start)
         self._create_ship_type(self._master_data['api_mst_ship'])
 
-        data = self._api.basic()
-        if data['api_result'] != 1:
-            self._log.error(data['api_result_msg'])
-            raise Exception('basic error')
+        # data = self._api.basic()
+        # if data['api_result'] != 1:
+            # self._log.error(data['api_result_msg'])
+            # raise Exception('basic error')
 
-        self._member_id = int(data['api_data']['api_member_id'])
+        self._member_id = int(api_basic['api_member_id'])
 
     def _create_ship_type(self, ship_data):
         session = Session()
@@ -92,22 +94,23 @@ class Client(object):
         session.commit()
 
     def _create_port(self):
-        api_port = _api_port(self._member_id)
-        data = self._api.port(api_port)
-        if data['api_result'] != 1:
-            self._log.error(data['api_result_msg'])
-            return
+        # api_port = _api_port(self._member_id)
+        # data = self._api.port(api_port)
+        # if data['api_result'] != 1:
+            # self._log.error(data['api_result_msg'])
+            # return
 
-        data = data['api_data']
+        # data = data['api_data']
+        data = api_port()
         deck_port = data['api_deck_port']
         ndock = data['api_ndock']
         ship = data['api_ship']
         self._create_ship(ship)
         self._create_deck(deck_port)
         self._create_ndock(ndock)
-        need_refresh = self._check_mission_result(deck_port)
-        if need_refresh:
-            self._update_all()
+        # need_refresh = self._check_mission_result(deck_port)
+        # if need_refresh:
+            # self._update_all()
 
     def _create_ship(self, ship_data):
         session = Session()
@@ -176,9 +179,9 @@ class Client(object):
                 deck.mission_time = 0
 
                 # NOTE nop, just simulate flash client
-                api_port = _api_port(self._member_id)
-                self._api.port(api_port)
-                self._api.useitem()
+                # api_port = _api_port(self._member_id)
+                # self._api.port(api_port)
+                # self._api.useitem()
 
                 need_refresh = True
         session.commit()
@@ -207,7 +210,7 @@ class Client(object):
                 return False
 
         # NOTE nop, just simulate flash client
-        self._api.get_missions()
+        # self._api.get_missions()
 
         # start mission
         data = self._api.mission(api_deck_id=api_deck_id, api_mission_id=api_mission_id)
@@ -216,7 +219,7 @@ class Client(object):
             return False
 
         # NOTE nop, just simulate flash client
-        self._api.deck()
+        # self._api.deck()
 
         # update cache
         deck = (session.query(db.Deck)
@@ -227,6 +230,26 @@ class Client(object):
         session.commit()
 
         return True
+
+    def check_mission_result(self, api_deck_id):
+        session = Session()
+
+        deck = session.query(db.Deck).filter(db.Deck.api_id == api_deck_id).first()
+        self._log.info('deck {0} returned from mission {1}'.format(deck.api_id, deck.mission_id))
+
+        data = self._api.result(api_deck_id=deck.api_id)
+        if data['api_result'] != 1:
+            self._log.error(data['api_result_msg'])
+            return
+        data = data['api_data']
+        self._log.info('mission result: {0}'.format(data['api_clear_result']))
+        event.mission_result.emit(api_deck_id=deck.api_id, api_clear_result=data['api_clear_result'])
+
+        deck.mission_status = 0
+        deck.mission_id = 0
+        deck.mission_time = 0
+
+        session.commit()
 
     def nyukyo(self, api_ship_id, api_ndock_id, api_highspeed):
         # update data
@@ -272,65 +295,3 @@ class Client(object):
                  # order by emergency
                  .order_by(db.Ship.api_nowhp * 100 / db.Ship.api_maxhp))
         return [ship for ship, in ships]
-
-
-_Il = [1623, 5727, 9278, 3527, 4976, 7180734, 6632, 3708, 4796, 9675, 13, 6631, 2987, 10, 1901, 9881, 1000, 3527]
-
-
-def _api_port(ll):
-    lI = _create_key()
-    return lI.t(
-        lI.s(
-            lI.u(
-                lI.z(
-                    _Il[16],
-                    lI.u(
-                        lI.i(9),
-                        1)),
-                lI.p(
-                    _Il[16],
-                    ll))),
-        lI.s(
-            lI.z(
-                lI.m(
-                    lI.z(
-                        _Il[5],
-                        lI.l(
-                            lI.s(ll),
-                            0,
-                            4)),
-                    lI.u(
-                        lI.n(),
-                        ll)),
-                _Il[_I1(lI.p(10,ll),lI)])),
-        lI.s(
-            lI.u(
-                lI.i(
-                    lI.z(
-                        9,
-                        _Il[16])),
-                _Il[16])))
-
-
-def _create_key():
-    is_int = re.compile(r'\d+')
-    key = ObjectDict()
-    key.r = math.floor
-    key.i = lambda a: key.r(random.random() * a)
-    key.l = lambda a, b, c: int(a[b:b+c]) if is_int.match(a[b:b+c]) else None
-    key.m = lambda a, b: a - b
-    key.n = lambda: key.r(time.time())
-    key.p = lambda a, b: b % a
-    key.s = str
-    key.t = lambda *args: ''.join(args)
-    key.u = lambda a, b: a + b
-    key.y = math.sqrt
-    key.z = lambda a, b: a * b
-    return key
-
-
-def _I1(II, lI):
-    ll = 0
-    while II != lI.l(lI.s(lI.y(_Il[_Il[13]])),ll,1):
-        ll += 1
-    return ll

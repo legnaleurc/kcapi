@@ -114,6 +114,8 @@ class _Mission(object):
         if api_deck_id not in self._decks:
             return
 
+        # self._client.check_mission_result(api_deck_id)
+
         self._log.debug('deck {0} start mission {1}'.format(api_deck_id, api_mission_id))
 
         # start mission
