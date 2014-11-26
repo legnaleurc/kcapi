@@ -40,8 +40,6 @@ class ShipType(_Base):
     api_name = sql.Column(sql.String)
     api_yomi = sql.Column(sql.String)
     api_stype = sql.Column(sql.Integer)
-    api_ctype = sql.Column(sql.Integer)
-    api_cnum = sql.Column(sql.Integer)
     api_enqflg = sql.Column(sql.String)
     api_afterlv = sql.Column(sql.Integer)
     api_aftershipid = sql.Column(sql.String)

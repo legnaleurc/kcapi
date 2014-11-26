@@ -137,9 +137,9 @@ def main(args=None):
     # event_loop = task.EventLoop()
 
     mission = task._Mission(client=client_, event_loop=event_loop)
-    mission.start(api_deck_id=2, api_mission_id=5)
-    mission.start(api_deck_id=3, api_mission_id=21)
-    mission.start(api_deck_id=4, api_mission_id=38)
+    mission.start(api_deck_id=2, api_mission_id=2)
+    mission.start(api_deck_id=3, api_mission_id=3)
+    mission.start(api_deck_id=4, api_mission_id=5)
 
     nyukyo = task._Nyukyo(client=client_, event_loop=event_loop)
     nyukyo.start()
